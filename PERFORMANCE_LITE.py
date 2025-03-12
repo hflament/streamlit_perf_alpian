@@ -236,23 +236,30 @@ adjusted_max = max_value * (1 + buffer)
 df_cumul_selected = df_cumul_selected / df_cumul_selected.iloc[0]
 fig, ax = plt.subplots(figsize=(10, 6))
 df_cumul_selected.plot(ax=ax)
-for idx, line in enumerate(ax.lines):
-    x = df_cumul_selected.index[-1]
-    y = df_cumul_selected.iloc[-1, idx]
-    if idx == 0:
-        line.set_linewidth(2.5)
-    else:
-        line.set_linestyle('--')
-    ax.annotate(
-        f"{y-1:.4f}",
-        xy=(x, y),
-        xytext=(5, 0),
-        textcoords="offset points",
-        fontsize=10,
-        color=line.get_color(),
-        ha="left",
-        va="center"
-    )
+
+for idx, column in enumerate(df_cumul_selected.columns):
+    last_valid_idx = df_cumul_selected[column].last_valid_index()
+    if last_valid_idx is not None:  
+        x = last_valid_idx
+        y = df_cumul_selected.loc[last_valid_idx, column]
+
+        line = ax.lines[idx]
+        if idx == 0:
+            line.set_linewidth(2.5)
+        else:
+            line.set_linestyle('--')
+
+        ax.annotate(
+            f"{y-1:.4f}",
+            xy=(x, y),  
+            xytext=(10, 0), 
+            textcoords="offset points",
+            fontsize=10,
+            color=line.get_color(),
+            ha="left", 
+            va="center" 
+        )
+
 ax.set_title("Rendements Cumulés des Produits", fontsize=16)
 ax.set_xlabel("Date", fontsize=12)
 ax.set_ylabel("Rendement Cumulé", fontsize=12)

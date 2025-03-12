@@ -2,31 +2,49 @@ import sqlite3
 import streamlit as st
 import numpy as np
 import pandas as pd
+import requests
 from datetime import timedelta
 import os
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 
-def SEC_USERS():
-    users_folder = '/Users'
-    usernames = [name for name in os.listdir(users_folder) if
-                 os.path.isdir(os.path.join(users_folder, name)) and name != 'Shared']
-    for user in usernames:
-        user_id = user
-    return user_id
+# GitHub RAW URL (Replace with your correct repo path)
+GITHUB_URL = "https://raw.githubusercontent.com/hflament/streamlit_perf_alpian/main/IMM.db"
+LOCAL_DB_PATH = "IMM.db"
 
-user_id = SEC_USERS()
+# 🔹 Force re-download if file size is incorrect
+def download_database():
+    st.info("Downloading SQLite database from GitHub...")
+    response = requests.get(GITHUB_URL, stream=True)
+    
+    if response.status_code == 200:
+        with open(LOCAL_DB_PATH, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        st.success("Database downloaded successfully!")
+    else:
+        st.error(f"Failed to download database: HTTP {response.status_code}")
 
-if user_id == 'VictorCianni' :
-    database_path = "C:/Users/"+user_id+"/Library/CloudStorage/OneDrive-SharedLibraries-AlpianSA/Investments - General/IMM.db"
-else :
-    database_path = "/Users/"+user_id+"/Library/CloudStorage/OneDrive-SharedLibraries-AlpianSA/Investments - General/IMM.db"
+# 🔹 Check if IMM.db exists & verify size
+if os.path.exists(LOCAL_DB_PATH):
+    db_size = os.path.getsize(LOCAL_DB_PATH) / (1024 * 1024)  # Convert to MB
+    st.write(f"Existing database size: {db_size:.2f} MB")
+
+    # Re-download if the file size is too small
+    if db_size < 11:  # Expecting ~12MB file
+        st.warning("Database file appears incomplete. Re-downloading...")
+        os.remove(LOCAL_DB_PATH)
+        download_database()
+else:
+    download_database()
+
+# 🔹 Connect to SQLite database
 try:
-    conn = sqlite3.connect(database_path)
+    conn = sqlite3.connect(LOCAL_DB_PATH, check_same_thread=False)
     cursor = conn.cursor()
-    print("Connection successful!")
+    st.success("Connected to SQLite database!")
 except Exception as e:
-    print(f"Error connecting to database: {e}")
+    st.error(f"Error connecting to database: {e}")
 
 df_grille_essential = pd.read_sql("SELECT * FROM GRILLE_ESSENTIAL",conn)
 plan_essential = ['BASIC_DISCRETIONARY_CAUTIOUS_SWISS', 'BASIC_DISCRETIONARY_MODERATE_SWISS', 'BASIC_DISCRETIONARY_BALANCED_SWISS', 'BASIC_DISCRETIONARY_AGGRESSIVE_SWISS', 'BASIC_DISCRETIONARY_VERY_AGGRESSIVE_SWISS', 'BASIC_DISCRETIONARY_CAUTIOUS_FOREIGN', 'BASIC_DISCRETIONARY_MODERATE_FOREIGN', 'BASIC_DISCRETIONARY_BALANCED_FOREIGN', 'BASIC_DISCRETIONARY_AGGRESSIVE_FOREIGN', 'BASIC_DISCRETIONARY_VERY_AGGRESSIVE_FOREIGN', 'BASIC_DISCRETIONARY_CAUTIOUS_ESG', 'BASIC_DISCRETIONARY_MODERATE_ESG', 'BASIC_DISCRETIONARY_BALANCED_ESG', 'BASIC_DISCRETIONARY_AGGRESSIVE_ESG', 'BASIC_DISCRETIONARY_VERY_AGGRESSIVE_ESG','BASIC_DISCRETIONARY_BALANCED_CRYPTO','BASIC_DISCRETIONARY_AGGRESSIVE_CRYPTO', 'BASIC_DISCRETIONARY_VERY_AGGRESSIVE_CRYPTO']
@@ -257,3 +275,6 @@ if len(bench) == 1:
     ax.set_title('P&L Over Time (Flipped Axis for <100)')
     plt.xticks(rotation=45)
     st.pyplot(fig)
+
+
+

@@ -8,52 +8,20 @@ import os
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 
-# GitHub RAW URL (Replace with your correct repo path)
-GITHUB_URL = "https://raw.githubusercontent.com/hflament/streamlit_perf_alpian/main/IMM.db"
-LOCAL_DB_PATH = "IMM.db"
+database_path = "/Users/hflament/Library/CloudStorage/OneDrive-SharedLibraries-AlpianSA/Investments - General/IMM.db"
+conn = sqlite3.connect(database_path, check_same_thread=False)
+cursor = conn.cursor()
 
-# 🔹 Force re-download if file size is incorrect
-def download_database():
-    st.info("Downloading SQLite database from GitHub...")
-    response = requests.get(GITHUB_URL, stream=True)
-    
-    if response.status_code == 200:
-        with open(LOCAL_DB_PATH, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
-        st.success("Database downloaded successfully!")
-    else:
-        st.error(f"Failed to download database: HTTP {response.status_code}")
-
-# 🔹 Check if IMM.db exists & verify size
-if os.path.exists(LOCAL_DB_PATH):
-    db_size = os.path.getsize(LOCAL_DB_PATH) / (1024 * 1024)  # Convert to MB
-    st.write(f"Existing database size: {db_size:.2f} MB")
-
-    # Re-download if the file size is too small
-    if db_size < 11:  # Expecting ~12MB file
-        st.warning("Database file appears incomplete. Re-downloading...")
-        os.remove(LOCAL_DB_PATH)
-        download_database()
-else:
-    download_database()
-
-# 🔹 Connect to SQLite database
-try:
-    conn = sqlite3.connect(LOCAL_DB_PATH, check_same_thread=False)
-    cursor = conn.cursor()
-    st.success("Connected to SQLite database!")
-except Exception as e:
-    st.error(f"Error connecting to database: {e}")
-
-df_grille_essential = pd.read_sql("SELECT * FROM GRILLE_ESSENTIAL",conn)
-plan_essential = ['BASIC_DISCRETIONARY_CAUTIOUS_SWISS', 'BASIC_DISCRETIONARY_MODERATE_SWISS', 'BASIC_DISCRETIONARY_BALANCED_SWISS', 'BASIC_DISCRETIONARY_AGGRESSIVE_SWISS', 'BASIC_DISCRETIONARY_VERY_AGGRESSIVE_SWISS', 'BASIC_DISCRETIONARY_CAUTIOUS_FOREIGN', 'BASIC_DISCRETIONARY_MODERATE_FOREIGN', 'BASIC_DISCRETIONARY_BALANCED_FOREIGN', 'BASIC_DISCRETIONARY_AGGRESSIVE_FOREIGN', 'BASIC_DISCRETIONARY_VERY_AGGRESSIVE_FOREIGN', 'BASIC_DISCRETIONARY_CAUTIOUS_ESG', 'BASIC_DISCRETIONARY_MODERATE_ESG', 'BASIC_DISCRETIONARY_BALANCED_ESG', 'BASIC_DISCRETIONARY_AGGRESSIVE_ESG', 'BASIC_DISCRETIONARY_VERY_AGGRESSIVE_ESG','BASIC_DISCRETIONARY_BALANCED_CRYPTO','BASIC_DISCRETIONARY_AGGRESSIVE_CRYPTO', 'BASIC_DISCRETIONARY_VERY_AGGRESSIVE_CRYPTO']
+df_grille_essential = pd.read_sql("SELECT * FROM performance_essential",conn).set_index('date')
+df_grille_essential.index = pd.to_datetime(df_grille_essential.index)
+df_grille_essential = df_grille_essential.drop(columns=['NO'])
+df_grille_essential = df_grille_essential.pct_change().fillna(0)
+plan_essential = df_grille_essential.columns.to_list()
 
 df_PW = pd.read_sql("SELECT * FROM PW_BENCH",conn).set_index('date')
 df_PW.index = pd.to_datetime(df_PW.index)
 df_PW = df_PW + 1
 df_PW = df_PW.pct_change().fillna(0)
-
 
 df = pd.read_sql("SELECT * FROM Daily_Return_Premium", conn).set_index('date')
 list_premium = ['CAUTIOUS_PREMIUM', 'MODERATE_PREMIUM', 'BALANCED_PREMIUM', 'AGGRESSIVE_PREMIUM', 'VERY_AGGRESSIVE_PREMIUM']
@@ -87,7 +55,11 @@ df_price_filtered = df_price_filtered.replace([np.inf, -np.inf], 0)
 df_bench = df_price_filtered.merge(df_PW, right_index=True, left_index=True, how ='left')
 list_bench = df_bench.columns.tolist()
 
+perf_period = ['Inception', '1Y', 'YTD', '6m', '3m', '1m']
+
 def PREMIUM(selected_plan, start_date, end_date, selected_bench, CHF):
+
+
     if CHF == 'True':
         df_devise = df_asset_setup[df_asset_setup['Asset class'].isin(selected_bench)]
         df_devise = df_devise[['Asset class', 'Currency']]
@@ -104,8 +76,6 @@ def PREMIUM(selected_plan, start_date, end_date, selected_bench, CHF):
             currency = currency_mapping.get(product)
             if currency:
                 df_result[product] = df_bench_return[product] * df_cur_selected[currency]
-        # df_result = df_result.pct_change().fillna(0)
-        # df_result = df_result.replace([np.inf, -np.inf], 0)
 
     else:
         df_bench_return = df_bench
@@ -113,7 +83,6 @@ def PREMIUM(selected_plan, start_date, end_date, selected_bench, CHF):
         df_bench_return_filtered = df_bench_return[filtered_columns]
         bench = df_bench_return_filtered.loc[start_date:end_date]
         df_result = bench
-        # df_result = df_result.replace([np.inf, -np.inf], 0)
 
     if selected_plan in list_premium :
         grille_selected = df[[selected_plan]]
@@ -124,22 +93,8 @@ def PREMIUM(selected_plan, start_date, end_date, selected_bench, CHF):
         else:
             df_cumul_grille = (grille_selected + 1).cumprod()
     else :
-        df_price_essential = pd.read_sql("SELECT * FROM PRICE_INSTRU_DISCR_DEV", conn).set_index('DATE').iloc[:-1]
-        df_price_essential.index = pd.to_datetime(df_price_essential.index)
-        df_price_essential = df_price_essential.sort_index()
-        df_price_essential = df_price_essential.loc[start_date:end_date]
-        df_price_essential = df_price_essential.replace(0, np.nan)
-        df_price_essential = df_price_essential.fillna(method='ffill')
-        df_price_essential = df_price_essential.pct_change()
-        df_price_essential = df_price_essential.fillna(0)
-        df_price_essential = df_price_essential.replace([np.inf, -np.inf], 0)
-        grille_selected = df_grille_essential[['immId', selected_plan]]
-        grille_selected = grille_selected[grille_selected[selected_plan] != 0]
-        weights_grille = grille_selected[selected_plan].tolist()
-        selected_columns = [str(col) for col in grille_selected.immId.tolist() if str(col) in df_price.columns]
-        df_price_grille = df_price_essential[selected_columns]
-        total_weighted_return_grille = (df_price_grille * weights_grille).sum(axis=1)
-        df_cumul_grille = total_weighted_return_grille.to_frame(name=selected_plan)
+        df_cumul_grille = df_grille_essential[[selected_plan]]
+        df_cumul_grille = df_cumul_grille.loc[start_date:end_date]
         if not df_result.empty:
             df_merge = df_cumul_grille.merge(df_result, left_index=True, right_index=True, how='left')
             df_cumul_grille = (df_merge + 1).cumprod()
@@ -151,7 +106,6 @@ def PREMIUM(selected_plan, start_date, end_date, selected_bench, CHF):
         df_gain_loss['P&L'] = ((df_gain_loss[selected_plan] - df_gain_loss.iloc[:, -1]) * 100) + 100
     return df_cumul_grille, df_gain_loss
 
-#print(PREMIUM('BASIC_DISCRETIONARY_BALANCED_CRYPTO','2024-01-01','2025-02-24', ['PW_very_dyn_bench'], 'True'))
 
 st.write("**Sélectionnez une plage de dates :**")
 date_range_option = st.selectbox(
@@ -228,6 +182,79 @@ else:
 
 #st.write(f"Plage de dates : {start_date.date()} à {end_date.date()}")
 df_cumul_selected, df_gain_loss = PREMIUM(selected_plan, start_date, end_date, bench, str(CHF))
+
+
+#perf table
+perf_period = ['Inception', '2023','2024' ,'YTD', '6m', '3m', '1m']
+
+all_selected =df_cumul_selected.columns.tolist()
+merge_all = df.merge(df_grille_essential, right_index = True, left_index =True, how='left').fillna(0)
+merge_all = merge_all.merge(df_price_filtered, right_index=True, left_index=True, how='left').fillna(0)
+merge_all = merge_all.merge(df_PW, right_index=True, left_index=True, how='left').fillna(0)
+
+
+df_perf_selected = merge_all[all_selected]
+end_date = merge_all.index.max()
+
+def get_closest_date(df, target_date):
+    return df.index[df.index <= target_date].max()
+
+date_map = {
+    'Inception': merge_all.index.min(),
+    '2023': (merge_all.index.min(), pd.Timestamp("2023-12-31")) if end_date.year >= 2023 else None,
+    '2024': (pd.Timestamp("2024-01-01"), pd.Timestamp("2024-12-31")) if end_date.year >= 2024 else None,
+    'YTD': pd.Timestamp(f"{end_date.year}-01-01"),
+    '6m': end_date - timedelta(days=6 * 30),
+    '3m': end_date - timedelta(days=3 * 30),
+    '1m': end_date - timedelta(days=30)
+}
+
+date_map = {k: v for k, v in date_map.items() if v is not None}
+
+df_cumul_perf = (1 + df_perf_selected).cumprod()
+
+df_tb_perf = pd.DataFrame(index=df_perf_selected.columns, columns=perf_period, data=np.nan)
+
+
+def get_return(df, period_dates):
+    if isinstance(period_dates, tuple):
+        start_date, end_year_date = period_dates
+        closest_start = get_closest_date(df, start_date)
+        closest_end = get_closest_date(df, end_year_date)
+    else:
+        closest_start = get_closest_date(df, period_dates)
+        closest_end = end_date
+    if pd.notna(closest_start) and pd.notna(closest_end):
+        return df.loc[closest_end] / df.loc[closest_start] - 1
+    return np.nan
+
+
+for period, period_dates in date_map.items():
+    df_tb_perf[period] = get_return(df_cumul_perf, period_dates)
+
+df_tb_perf = df_tb_perf * 100
+df_tb_perf = df_tb_perf.applymap(lambda x: f"{x:.3f} %")
+
+styled_table = df_tb_perf.to_html()
+custom_css = """
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 8px 12px;
+            text-align: center;
+            white-space: nowrap; /* Prevents line breaks */
+            font-size: 16px;
+        }
+    </style>
+"""
+
+st.markdown(custom_css + styled_table, unsafe_allow_html=True)
+#st.dataframe(df_tb_perf.style.set_properties(**{'white-space': 'nowrap'}))
+
+#fig first perf cumul
 min_value = df_cumul_selected.min().min()
 max_value = df_cumul_selected.max().max()
 buffer = 0.05
@@ -239,7 +266,7 @@ df_cumul_selected.plot(ax=ax)
 
 for idx, column in enumerate(df_cumul_selected.columns):
     last_valid_idx = df_cumul_selected[column].last_valid_index()
-    if last_valid_idx is not None:  
+    if last_valid_idx is not None:
         x = last_valid_idx
         y = df_cumul_selected.loc[last_valid_idx, column]
 
@@ -251,13 +278,13 @@ for idx, column in enumerate(df_cumul_selected.columns):
 
         ax.annotate(
             f"{y-1:.4f}",
-            xy=(x, y),  
-            xytext=(10, 0), 
+            xy=(x, y),
+            xytext=(10, 0),
             textcoords="offset points",
             fontsize=10,
             color=line.get_color(),
-            ha="left", 
-            va="center" 
+            ha="left",
+            va="center"
         )
 
 ax.set_title("Rendements Cumulés des Produits", fontsize=16)
@@ -268,7 +295,6 @@ ax.set_xlim(df_cumul_selected.index.min(), df_cumul_selected.index.max())
 plt.xticks(rotation=45)
 plt.grid()
 st.pyplot(fig)
-
 
 if len(bench) == 1:
     df_gain_loss_plot = df_gain_loss

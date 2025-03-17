@@ -8,9 +8,27 @@ import os
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 
-database_path = "/Users/hflament/Library/CloudStorage/OneDrive-SharedLibraries-AlpianSA/Investments - General/IMM.db"
-conn = sqlite3.connect(database_path, check_same_thread=False)
-cursor = conn.cursor()
+GITHUB_URL = "https://raw.githubusercontent.com/hflament/streamlit_perf_alpian/main/IMM.db"
+LOCAL_DB_PATH = "IMM.db"
+
+# Check if IMM.db already exists locally
+if not os.path.exists(LOCAL_DB_PATH):
+    try:
+        st.info("Downloading database file from GitHub...")
+        response = requests.get(GITHUB_URL)
+        with open(LOCAL_DB_PATH, 'wb') as f:
+            f.write(response.content)
+        #st.success("Database downloaded successfully!")
+    except Exception as e:
+        st.error(f"Failed to download database: {e}")
+
+# Connect to SQLite database
+try:
+    conn = sqlite3.connect(LOCAL_DB_PATH, check_same_thread=False)
+    cursor = conn.cursor()
+    #st.success("Connected to SQLite database!")
+except Exception as e:
+    st.error(f"Error connecting to database: {e}")
 
 df_grille_essential = pd.read_sql("SELECT * FROM performance_essential",conn).set_index('date')
 df_grille_essential.index = pd.to_datetime(df_grille_essential.index)

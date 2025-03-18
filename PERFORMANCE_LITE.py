@@ -134,7 +134,7 @@ def PREMIUM(selected_plan, start_date, end_date, selected_bench, CHF):
         else:
             df_cumul_grille = (grille_selected + 1).cumprod()
     else :
-        df_cumul_grille = df_grille_essential[[selected_plan]]
+        df_cumul_grille = df_grille_essential_all[[selected_plan]]
         df_cumul_grille = df_cumul_grille.loc[start_date:end_date]
         if not df_result.empty:
             df_merge = df_cumul_grille.merge(df_result, left_index=True, right_index=True, how='left')

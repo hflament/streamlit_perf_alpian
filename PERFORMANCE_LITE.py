@@ -30,12 +30,35 @@ try:
 except Exception as e:
     st.error(f"Error connecting to database: {e}")
 
+#Essential all
 df_grille_essential = pd.read_sql("SELECT * FROM performance_essential",conn).set_index('date')
 df_grille_essential.index = pd.to_datetime(df_grille_essential.index)
 df_grille_essential = df_grille_essential.drop(columns=['NO'])
 df_grille_essential = df_grille_essential.pct_change().fillna(0)
+df_essential_back = pd.read_sql('SELECT * FROM ESSENTIAL_BACK_PERF', conn).set_index('DATE')
+df_essential_back.index = pd.to_datetime(df_essential_back.index)
+df_essential_back.columns = df_essential_back.columns.str.replace('AGGRESSIVE', 'DYNAMIC')
+
+df_final = pd.DataFrame(index=df_essential_back.index.union(df_grille_essential.index))
+l = []
+for plan in df_essential_back.columns:
+    real_start_date = df_grille_essential[plan][df_grille_essential[plan] != 0].first_valid_index()
+    data = {'plan':plan, 'date_started':real_start_date}
+    if real_start_date:
+        merged_series = pd.concat([
+            df_essential_back[plan][df_essential_back.index < real_start_date],
+            df_grille_essential[plan][df_grille_essential.index >= real_start_date]
+        ])
+    else:
+        merged_series = df_essential_back[plan]
+    l.append(data)
+    df_final[plan] = merged_series
+df_date_essential = pd.DataFrame(l)
+
+df_grille_essential_all = df_final.fillna(0)
 plan_essential = df_grille_essential.columns.to_list()
 
+#Performance Watcher
 df_PW = pd.read_sql("SELECT * FROM PW_BENCH",conn).set_index('date')
 df_PW.index = pd.to_datetime(df_PW.index)
 df_PW = df_PW + 1

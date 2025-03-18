@@ -201,6 +201,35 @@ else:
 #st.write(f"Plage de dates : {start_date.date()} à {end_date.date()}")
 df_cumul_selected, df_gain_loss = PREMIUM(selected_plan, start_date, end_date, bench, str(CHF))
 
+#TOP 5 and BOTTOM 5 instrument discretionnary perf YTD
+df_instru_disc = pd.read_sql('SELECT * FROM PRICE_DISC_ACTIVE', conn).set_index('DATE')
+df_instru_disc.index = pd.to_datetime(df_instru_disc.index)
+max_year = df_instru_disc.index.max().year
+
+df_instru_disc = df_instru_disc.loc[pd.Timestamp(f"{max_year}-01-01"):].pct_change(fill_method=None).fillna(0)
+df_instru_disc = df_instru_disc.loc[:, (df_instru_disc != 0).any(axis=0)]
+df_disc_cumul = (df_instru_disc + 1).cumprod()
+
+final_perf = df_disc_cumul.iloc[-1]
+top_3 = final_perf.nlargest(5)
+bottom_3 = final_perf.nsmallest(5)
+selected_perf = pd.concat([top_3, bottom_3]).sort_values(ascending=False).reset_index()
+selected_perf.columns = ['immId', 'Performance_YTD']
+
+df_info_instru = pd.read_sql('SELECT * FROM INFO_DISC_INSTRU', conn)
+selected_perf['immId'] = selected_perf['immId'].astype(str)
+df_info_instru['immId'] = df_info_instru['immId'].astype(str)
+selected_perf = selected_perf.merge(df_info_instru, on = 'immId', how = 'left')[['name', 'isin', 'Performance_YTD']]
+selected_perf['Performance_YTD'] = (selected_perf['Performance_YTD']-1)*100
+selected_perf['Performance_YTD'] = selected_perf['Performance_YTD'].apply(lambda x: f"{x:.3f} %")
+
+def highlight_rows(row):
+    color = 'limegreen' if row.name < 5 else 'salmon'
+    return [f'background-color: transparent; color: {color}'] * len(row)
+
+styled_df = selected_perf.style.apply(highlight_rows, axis=1)
+
+st.dataframe(styled_df)
 
 #perf table
 perf_period = ['Inception', '2023','2024' ,'YTD', '6m', '3m', '1m']

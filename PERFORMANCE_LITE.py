@@ -258,7 +258,7 @@ st.dataframe(styled_df)
 perf_period = ['Inception', '2023','2024' ,'YTD', '6m', '3m', '1m']
 
 all_selected =df_cumul_selected.columns.tolist()
-merge_all = df.merge(df_grille_essential, right_index = True, left_index =True, how='left').fillna(0)
+merge_all = df.merge(df_grille_essential_all, right_index = True, left_index =True, how='left').fillna(0)
 merge_all = merge_all.merge(df_price_filtered, right_index=True, left_index=True, how='left').fillna(0)
 merge_all = merge_all.merge(df_PW, right_index=True, left_index=True, how='left').fillna(0)
 

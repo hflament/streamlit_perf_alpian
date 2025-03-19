@@ -30,6 +30,7 @@ try:
 except Exception as e:
     st.error(f"Error connecting to database: {e}")
 
+
 #Essential all
 df_grille_essential = pd.read_sql("SELECT * FROM performance_essential",conn).set_index('date')
 df_grille_essential.index = pd.to_datetime(df_grille_essential.index)
@@ -150,248 +151,257 @@ def PREMIUM(selected_plan, start_date, end_date, selected_bench, CHF):
 
 st.write("**WELCOME** :sunglasses:")
 
-st.write("**Sélectionnez une plage de dates :**")
-date_range_option = st.selectbox(
-    "Choisissez la plage de dates",
-    options=["ALL","3Y", "1Y", "YTD", "6m","3m","1m", "1s", "Custom"],index=0)
-
-#end_date = df_price_filtered.index.max()
-
-if date_range_option == "Custom":
-    col1, col2 = st.columns(2)
-    start_date = col1.date_input("Start Date", value=df_price_filtered.index.min().date())
-    end_date = col2.date_input("End Date", value=df_price_filtered.index.max().date())
-    if start_date > end_date:
-        st.error("Start Date cannot be after End Date. Please adjust the range.")
-else:
-    end_date = df_price_filtered.index.max()
-    if date_range_option == "3Y":
-        start_date = end_date - timedelta(days=3 * 365)
-    elif date_range_option == "1Y":
-        start_date = end_date - timedelta(days=365)
-    elif date_range_option == "YTD":
-        start_date = pd.Timestamp(f"{end_date.year}-01-01")
-    elif date_range_option == "6m":
-        start_date = end_date - timedelta(days=6 * 30)
-    elif date_range_option == "1m":
-        start_date = end_date - timedelta(days=30)
-    elif date_range_option == "3m":
-        start_date = end_date - timedelta(days=3 * 30)
-    elif date_range_option == "1s":
-        start_date = end_date - timedelta(days=7)
-    elif date_range_option == "ALL":
-        start_date = df.index.min()
-
-st.write(f"Plage de dates : {start_date} à {end_date}")
-
-if 'clicked_buttons' not in st.session_state:
-    st.session_state.clicked_buttons = set()
-
-cols = st.columns(4)
-
-list_bench = sorted(list_bench)
-
-for i, button_label in enumerate(list_bench):
-    col = cols[i % len(cols)]
-    is_selected = button_label in st.session_state.clicked_buttons
-    button_style = "background-color: red; color: white;" if is_selected else ""
-
-    if col.button(button_label, key=f"btn_{button_label}"):
-        if is_selected:
-            st.session_state.clicked_buttons.remove(button_label)
-        else:
-            st.session_state.clicked_buttons.add(button_label)
-
-bench = list(st.session_state.clicked_buttons)
-
-
-selected_plan = st.selectbox(
+menu_selection = st.selectbox(
     "**Sélectionnez un plan :**",
-    options=list_premium_Essential,
+    options=['DETAILS_VIEW', 'DOWNLOAD'],
     index=0
 )
-if selected_plan == "ESSENTIAL":
+
+if menu_selection == 'DETAILS_VIEW' :
+
+    st.write("**Sélectionnez une plage de dates :**")
+    date_range_option = st.selectbox(
+        "Choisissez la plage de dates",
+        options=["ALL","3Y", "1Y", "YTD", "6m","3m","1m", "1s", "Custom"],index=0)
+
+    #end_date = df_price_filtered.index.max()
+
+    if date_range_option == "Custom":
+        col1, col2 = st.columns(2)
+        start_date = col1.date_input("Start Date", value=df_price_filtered.index.min().date())
+        end_date = col2.date_input("End Date", value=df_price_filtered.index.max().date())
+        if start_date > end_date:
+            st.error("Start Date cannot be after End Date. Please adjust the range.")
+    else:
+        end_date = df_price_filtered.index.max()
+        if date_range_option == "3Y":
+            start_date = end_date - timedelta(days=3 * 365)
+        elif date_range_option == "1Y":
+            start_date = end_date - timedelta(days=365)
+        elif date_range_option == "YTD":
+            start_date = pd.Timestamp(f"{end_date.year}-01-01")
+        elif date_range_option == "6m":
+            start_date = end_date - timedelta(days=6 * 30)
+        elif date_range_option == "1m":
+            start_date = end_date - timedelta(days=30)
+        elif date_range_option == "3m":
+            start_date = end_date - timedelta(days=3 * 30)
+        elif date_range_option == "1s":
+            start_date = end_date - timedelta(days=7)
+        elif date_range_option == "ALL":
+            start_date = df.index.min()
+
+    st.write(f"Plage de dates : {start_date} à {end_date}")
+
+    if 'clicked_buttons' not in st.session_state:
+        st.session_state.clicked_buttons = set()
+
+    cols = st.columns(4)
+
+    list_bench = sorted(list_bench)
+
+    for i, button_label in enumerate(list_bench):
+        col = cols[i % len(cols)]
+        is_selected = button_label in st.session_state.clicked_buttons
+        button_style = "background-color: red; color: white;" if is_selected else ""
+
+        if col.button(button_label, key=f"btn_{button_label}"):
+            if is_selected:
+                st.session_state.clicked_buttons.remove(button_label)
+            else:
+                st.session_state.clicked_buttons.add(button_label)
+
+    bench = list(st.session_state.clicked_buttons)
+
+
     selected_plan = st.selectbox(
         "**Sélectionnez un plan :**",
-        options=plan_essential,
-        index=0)
+        options=list_premium_Essential,
+        index=0
+    )
+    if selected_plan == "ESSENTIAL":
+        selected_plan = st.selectbox(
+            "**Sélectionnez un plan :**",
+            options=plan_essential,
+            index=0)
 
-CHF = st.checkbox("**Mettre le bench en CHF:**")
+    CHF = st.checkbox("**Mettre le bench en CHF:**")
 
-if CHF:
-    st.write("Checkbox is TRUE: Bench is in CHF")
-else:
-    st.write("Checkbox is FALSE: Bench is not in CHF")
-
-#st.write(f"Plage de dates : {start_date.date()} à {end_date.date()}")
-df_cumul_selected, df_gain_loss = PREMIUM(selected_plan, start_date, end_date, bench, str(CHF))
-
-#TOP 5 and BOTTOM 5 instrument discretionnary perf YTD
-df_instru_disc = pd.read_sql('SELECT * FROM PRICE_DISC_ACTIVE', conn).set_index('DATE')
-df_instru_disc.index = pd.to_datetime(df_instru_disc.index)
-max_year = df_instru_disc.index.max().year
-
-df_instru_disc = df_instru_disc.loc[pd.Timestamp(f"{max_year}-01-01"):].pct_change(fill_method=None).fillna(0)
-df_instru_disc = df_instru_disc.loc[:, (df_instru_disc != 0).any(axis=0)]
-df_disc_cumul = (df_instru_disc + 1).cumprod()
-
-final_perf = df_disc_cumul.iloc[-1]
-top_3 = final_perf.nlargest(5)
-bottom_3 = final_perf.nsmallest(5)
-selected_perf = pd.concat([top_3, bottom_3]).sort_values(ascending=False).reset_index()
-selected_perf.columns = ['immId', 'Performance_YTD']
-
-df_info_instru = pd.read_sql('SELECT * FROM INFO_DISC_INSTRU', conn)
-selected_perf['immId'] = selected_perf['immId'].astype(str)
-df_info_instru['immId'] = df_info_instru['immId'].astype(str)
-selected_perf = selected_perf.merge(df_info_instru, on = 'immId', how = 'left')[['name', 'isin', 'Performance_YTD']]
-selected_perf['Performance_YTD'] = (selected_perf['Performance_YTD']-1)*100
-selected_perf['Performance_YTD'] = selected_perf['Performance_YTD'].apply(lambda x: f"{x:.3f} %")
-
-def highlight_rows(row):
-    color = 'limegreen' if row.name < 5 else 'salmon'
-    return [f'background-color: transparent; color: {color}'] * len(row)
-
-styled_df = selected_perf.style.apply(highlight_rows, axis=1)
-
-st.write("**TOP 5 and WORST 5 PERFORMERS :** :rocket:")
-
-st.dataframe(styled_df)
-
-#perf table
-perf_period = ['Inception', '2023','2024' ,'YTD', '6m', '3m', '1m']
-
-all_selected =df_cumul_selected.columns.tolist()
-merge_all = df.merge(df_grille_essential_all, right_index = True, left_index =True, how='left').fillna(0)
-merge_all = merge_all.merge(df_price_filtered, right_index=True, left_index=True, how='left').fillna(0)
-merge_all = merge_all.merge(df_PW, right_index=True, left_index=True, how='left').fillna(0)
-
-
-df_perf_selected = merge_all[all_selected]
-end_date = merge_all.index.max()
-
-def get_closest_date(df, target_date):
-    return df.index[df.index <= target_date].max()
-
-date_map = {
-    'Inception': merge_all.index.min(),
-    '2023': (merge_all.index.min(), pd.Timestamp("2023-12-31")) if end_date.year >= 2023 else None,
-    '2024': (pd.Timestamp("2024-01-01"), pd.Timestamp("2024-12-31")) if end_date.year >= 2024 else None,
-    'YTD': pd.Timestamp(f"{end_date.year}-01-01"),
-    '6m': end_date - timedelta(days=6 * 30),
-    '3m': end_date - timedelta(days=3 * 30),
-    '1m': end_date - timedelta(days=30)
-}
-
-date_map = {k: v for k, v in date_map.items() if v is not None}
-
-df_cumul_perf = (1 + df_perf_selected).cumprod()
-
-df_tb_perf = pd.DataFrame(index=df_perf_selected.columns, columns=perf_period, data=np.nan)
-
-
-def get_return(df, period_dates):
-    if isinstance(period_dates, tuple):
-        start_date, end_year_date = period_dates
-        closest_start = get_closest_date(df, start_date)
-        closest_end = get_closest_date(df, end_year_date)
+    if CHF:
+        st.write("Checkbox is TRUE: Bench is in CHF")
     else:
-        closest_start = get_closest_date(df, period_dates)
-        closest_end = end_date
-    if pd.notna(closest_start) and pd.notna(closest_end):
-        return df.loc[closest_end] / df.loc[closest_start] - 1
-    return np.nan
+        st.write("Checkbox is FALSE: Bench is not in CHF")
+
+    #st.write(f"Plage de dates : {start_date.date()} à {end_date.date()}")
+    df_cumul_selected, df_gain_loss = PREMIUM(selected_plan, start_date, end_date, bench, str(CHF))
+
+    #TOP 5 and BOTTOM 5 instrument discretionnary perf YTD
+    df_instru_disc = pd.read_sql('SELECT * FROM PRICE_DISC_ACTIVE', conn).set_index('DATE')
+    df_instru_disc.index = pd.to_datetime(df_instru_disc.index)
+    max_year = df_instru_disc.index.max().year
+
+    df_instru_disc = df_instru_disc.loc[pd.Timestamp(f"{max_year}-01-01"):].pct_change(fill_method=None).fillna(0)
+    df_instru_disc = df_instru_disc.loc[:, (df_instru_disc != 0).any(axis=0)]
+    df_disc_cumul = (df_instru_disc + 1).cumprod()
+
+    final_perf = df_disc_cumul.iloc[-1]
+    top_3 = final_perf.nlargest(5)
+    bottom_3 = final_perf.nsmallest(5)
+    selected_perf = pd.concat([top_3, bottom_3]).sort_values(ascending=False).reset_index()
+    selected_perf.columns = ['immId', 'Performance_YTD']
+
+    df_info_instru = pd.read_sql('SELECT * FROM INFO_DISC_INSTRU', conn)
+    selected_perf['immId'] = selected_perf['immId'].astype(str)
+    df_info_instru['immId'] = df_info_instru['immId'].astype(str)
+    selected_perf = selected_perf.merge(df_info_instru, on = 'immId', how = 'left')[['name', 'isin', 'Performance_YTD']]
+    selected_perf['Performance_YTD'] = (selected_perf['Performance_YTD']-1)*100
+    selected_perf['Performance_YTD'] = selected_perf['Performance_YTD'].apply(lambda x: f"{x:.3f} %")
+
+    def highlight_rows(row):
+        color = 'limegreen' if row.name < 5 else 'salmon'
+        return [f'background-color: transparent; color: {color}'] * len(row)
+
+    styled_df = selected_perf.style.apply(highlight_rows, axis=1)
+
+    st.write("**TOP 5 and WORST 5 PERFORMERS :** :rocket:")
+
+    st.dataframe(styled_df)
+
+    #perf table
+    perf_period = ['Inception', '2023','2024' ,'YTD', '6m', '3m', '1m']
+
+    all_selected =df_cumul_selected.columns.tolist()
+    merge_all = df.merge(df_grille_essential_all, right_index = True, left_index =True, how='left').fillna(0)
+    merge_all = merge_all.merge(df_price_filtered, right_index=True, left_index=True, how='left').fillna(0)
+    merge_all = merge_all.merge(df_PW, right_index=True, left_index=True, how='left').fillna(0)
 
 
-for period, period_dates in date_map.items():
-    df_tb_perf[period] = get_return(df_cumul_perf, period_dates)
+    df_perf_selected = merge_all[all_selected]
+    end_date = merge_all.index.max()
 
-df_tb_perf = df_tb_perf * 100
-df_tb_perf = df_tb_perf.applymap(lambda x: f"{x:.3f} %")
+    def get_closest_date(df, target_date):
+        return df.index[df.index <= target_date].max()
 
-styled_table = df_tb_perf.to_html()
-custom_css = """
-    <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            padding: 8px 12px;
-            text-align: center;
-            white-space: nowrap; /* Prevents line breaks */
-            font-size: 16px;
-        }
-    </style>
-"""
+    date_map = {
+        'Inception': merge_all.index.min(),
+        '2023': (merge_all.index.min(), pd.Timestamp("2023-12-31")) if end_date.year >= 2023 else None,
+        '2024': (pd.Timestamp("2024-01-01"), pd.Timestamp("2024-12-31")) if end_date.year >= 2024 else None,
+        'YTD': pd.Timestamp(f"{end_date.year}-01-01"),
+        '6m': end_date - timedelta(days=6 * 30),
+        '3m': end_date - timedelta(days=3 * 30),
+        '1m': end_date - timedelta(days=30)
+    }
 
-st.write("**PERFORMANCE OVER TIME:** :chart_with_upwards_trend:")
+    date_map = {k: v for k, v in date_map.items() if v is not None}
 
-st.markdown(custom_css + styled_table, unsafe_allow_html=True)
-#st.dataframe(df_tb_perf.style.set_properties(**{'white-space': 'nowrap'}))
+    df_cumul_perf = (1 + df_perf_selected).cumprod()
 
-df_cumul_selected.index = pd.to_datetime(df_cumul_selected.index)
-min_value = df_cumul_selected.min().min()
-max_value = df_cumul_selected.max().max()
-buffer = 0.05
-adjusted_min = min_value * (1 - buffer)
-adjusted_max = max_value * (1 + buffer)
-df_cumul_selected = df_cumul_selected / df_cumul_selected.iloc[0]
-fig, ax = plt.subplots(figsize=(10, 6))
+    df_tb_perf = pd.DataFrame(index=df_perf_selected.columns, columns=perf_period, data=np.nan)
 
-for idx, column in enumerate(df_cumul_selected.columns):
-    last_valid_idx = df_cumul_selected[column].last_valid_index()
-    if last_valid_idx is not None:
-        x = last_valid_idx
-        y = df_cumul_selected.loc[last_valid_idx, column]
 
-        if column in df_date_essential['plan'].values:
-            real_start_date = df_date_essential[df_date_essential['plan'] == column]['date_started'].values[0]
-            if pd.notna(real_start_date):
-                pre_start_data = df_cumul_selected[column][df_cumul_selected.index < real_start_date]
-                post_start_data = df_cumul_selected[column][df_cumul_selected.index >= real_start_date]
+    def get_return(df, period_dates):
+        if isinstance(period_dates, tuple):
+            start_date, end_year_date = period_dates
+            closest_start = get_closest_date(df, start_date)
+            closest_end = get_closest_date(df, end_year_date)
+        else:
+            closest_start = get_closest_date(df, period_dates)
+            closest_end = end_date
+        if pd.notna(closest_start) and pd.notna(closest_end):
+            return df.loc[closest_end] / df.loc[closest_start] - 1
+        return np.nan
 
-                ax.plot(pre_start_data.index, pre_start_data.values, linestyle=':', label=f'{column} (back-test)', color='black', linewidth = 2.5)
-                ax.plot(post_start_data.index, post_start_data.values, linestyle='-', label=f'{column} (real)', color='black', linewidth = 2.5)
+
+    for period, period_dates in date_map.items():
+        df_tb_perf[period] = get_return(df_cumul_perf, period_dates)
+
+    df_tb_perf = df_tb_perf * 100
+    df_tb_perf = df_tb_perf.applymap(lambda x: f"{x:.3f} %")
+
+    styled_table = df_tb_perf.to_html()
+    custom_css = """
+        <style>
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            th, td {
+                padding: 8px 12px;
+                text-align: center;
+                white-space: nowrap; /* Prevents line breaks */
+                font-size: 16px;
+            }
+        </style>
+    """
+
+    st.write("**PERFORMANCE OVER TIME:** :chart_with_upwards_trend:")
+
+    st.markdown(custom_css + styled_table, unsafe_allow_html=True)
+    #st.dataframe(df_tb_perf.style.set_properties(**{'white-space': 'nowrap'}))
+
+    df_cumul_selected.index = pd.to_datetime(df_cumul_selected.index)
+    min_value = df_cumul_selected.min().min()
+    max_value = df_cumul_selected.max().max()
+    buffer = 0.05
+    adjusted_min = min_value * (1 - buffer)
+    adjusted_max = max_value * (1 + buffer)
+    df_cumul_selected = df_cumul_selected / df_cumul_selected.iloc[0]
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    for idx, column in enumerate(df_cumul_selected.columns):
+        last_valid_idx = df_cumul_selected[column].last_valid_index()
+        if last_valid_idx is not None:
+            x = last_valid_idx
+            y = df_cumul_selected.loc[last_valid_idx, column]
+
+            if column in df_date_essential['plan'].values:
+                real_start_date = df_date_essential[df_date_essential['plan'] == column]['date_started'].values[0]
+                if pd.notna(real_start_date):
+                    pre_start_data = df_cumul_selected[column][df_cumul_selected.index < real_start_date]
+                    post_start_data = df_cumul_selected[column][df_cumul_selected.index >= real_start_date]
+
+                    ax.plot(pre_start_data.index, pre_start_data.values, linestyle=':', label=f'{column} (back-test)', color='black', linewidth = 2.5)
+                    ax.plot(post_start_data.index, post_start_data.values, linestyle='-', label=f'{column} (real)', color='black', linewidth = 2.5)
+                else:
+                    ax.plot(df_cumul_selected.index, df_cumul_selected[column], linestyle='-', label=column)
             else:
                 ax.plot(df_cumul_selected.index, df_cumul_selected[column], linestyle='-', label=column)
-        else:
-            ax.plot(df_cumul_selected.index, df_cumul_selected[column], linestyle='-', label=column)
 
-        ax.annotate(
-            f"{y - 1:.4f}",
-            xy=(x, y),
-            xytext=(10, 0),
-            textcoords="offset points",
-            fontsize=10,
-            color=ax.lines[-1].get_color(),
-            ha="left",
-            va="center"
-        )
+            ax.annotate(
+                f"{y - 1:.4f}",
+                xy=(x, y),
+                xytext=(10, 0),
+                textcoords="offset points",
+                fontsize=10,
+                color=ax.lines[-1].get_color(),
+                ha="left",
+                va="center"
+            )
 
-ax.set_title("Rendements Cumulés des Produits", fontsize=16)
-ax.set_xlabel("Date", fontsize=12)
-ax.set_ylabel("Rendement Cumulé", fontsize=12)
-ax.legend(loc='best')
-ax.set_ylim(adjusted_min, adjusted_max)
-ax.set_xlim(df_cumul_selected.index.min(), df_cumul_selected.index.max())
-plt.xticks(rotation=45)
-
-plt.grid()
-st.pyplot(fig)
-
-if len(bench) == 1:
-    df_gain_loss_plot = df_gain_loss
-    df_gain_loss_plot['color'] = df_gain_loss_plot['P&L'].apply(lambda x: 'green' if x > 100 else 'red')
-    df_gain_loss_plot['adjusted_P&L'] = df_gain_loss_plot['P&L'] - 100
-    fig, ax = plt.subplots(figsize=(10, 6))
-    bars = ax.bar(df_gain_loss_plot.index, df_gain_loss_plot['adjusted_P&L'], color=df_gain_loss_plot['color'])
-    ax.axhline(y=0, color='black', linewidth=1.5, linestyle='--')
-    ax.set_xlabel('Date')
-    ax.set_ylabel('P&L Deviation from 100')
-    ax.set_title('P&L Over Time (Flipped Axis for <100)')
+    ax.set_title("Rendements Cumulés des Produits", fontsize=16)
+    ax.set_xlabel("Date", fontsize=12)
+    ax.set_ylabel("Rendement Cumulé", fontsize=12)
+    ax.legend(loc='best')
+    ax.set_ylim(adjusted_min, adjusted_max)
+    ax.set_xlim(df_cumul_selected.index.min(), df_cumul_selected.index.max())
     plt.xticks(rotation=45)
+
+    plt.grid()
     st.pyplot(fig)
 
+    if len(bench) == 1:
+        df_gain_loss_plot = df_gain_loss
+        df_gain_loss_plot['color'] = df_gain_loss_plot['P&L'].apply(lambda x: 'green' if x > 100 else 'red')
+        df_gain_loss_plot['adjusted_P&L'] = df_gain_loss_plot['P&L'] - 100
+        fig, ax = plt.subplots(figsize=(10, 6))
+        bars = ax.bar(df_gain_loss_plot.index, df_gain_loss_plot['adjusted_P&L'], color=df_gain_loss_plot['color'])
+        ax.axhline(y=0, color='black', linewidth=1.5, linestyle='--')
+        ax.set_xlabel('Date')
+        ax.set_ylabel('P&L Deviation from 100')
+        ax.set_title('P&L Over Time (Flipped Axis for <100)')
+        plt.xticks(rotation=45)
+        st.pyplot(fig)
 
+if menu_selection == 'DOWNLOAD' :
+    st.write("DOWNLOAD")
 

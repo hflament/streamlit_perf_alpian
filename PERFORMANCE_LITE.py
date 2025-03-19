@@ -325,7 +325,7 @@ custom_css = """
     </style>
 """
 
-st.write("**PERFORMANCE OVER TIME:** :rocket:")
+st.write("**PERFORMANCE OVER TIME:** :chart_increasing:")
 
 st.markdown(custom_css + styled_table, unsafe_allow_html=True)
 #st.dataframe(df_tb_perf.style.set_properties(**{'white-space': 'nowrap'}))

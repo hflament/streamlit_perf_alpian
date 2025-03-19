@@ -324,7 +324,7 @@ custom_css = """
 st.markdown(custom_css + styled_table, unsafe_allow_html=True)
 #st.dataframe(df_tb_perf.style.set_properties(**{'white-space': 'nowrap'}))
 
-#fig first perf cumul
+df_cumul_selected.index = pd.to_datetime(df_cumul_selected.index)
 min_value = df_cumul_selected.min().min()
 max_value = df_cumul_selected.max().max()
 buffer = 0.05
@@ -332,7 +332,6 @@ adjusted_min = min_value * (1 - buffer)
 adjusted_max = max_value * (1 + buffer)
 df_cumul_selected = df_cumul_selected / df_cumul_selected.iloc[0]
 fig, ax = plt.subplots(figsize=(10, 6))
-df_cumul_selected.plot(ax=ax)
 
 for idx, column in enumerate(df_cumul_selected.columns):
     last_valid_idx = df_cumul_selected[column].last_valid_index()
@@ -340,19 +339,26 @@ for idx, column in enumerate(df_cumul_selected.columns):
         x = last_valid_idx
         y = df_cumul_selected.loc[last_valid_idx, column]
 
-        line = ax.lines[idx]
-        if idx == 0:
-            line.set_linewidth(2.5)
+        if column in df_date_essential['plan'].values:
+            real_start_date = df_date_essential[df_date_essential['plan'] == column]['date_started'].values[0]
+            if pd.notna(real_start_date):
+                pre_start_data = df_cumul_selected[column][df_cumul_selected.index < real_start_date]
+                post_start_data = df_cumul_selected[column][df_cumul_selected.index >= real_start_date]
+
+                ax.plot(pre_start_data.index, pre_start_data.values, linestyle=':', label=f'{column} (back-test)', color='black', linewidth = 2.5)
+                ax.plot(post_start_data.index, post_start_data.values, linestyle='-', label=f'{column} (real)', color='black', linewidth = 2.5)
+            else:
+                ax.plot(df_cumul_selected.index, df_cumul_selected[column], linestyle='-', label=column)
         else:
-            line.set_linestyle('--')
+            ax.plot(df_cumul_selected.index, df_cumul_selected[column], linestyle='-', label=column)
 
         ax.annotate(
-            f"{y-1:.4f}",
+            f"{y - 1:.4f}",
             xy=(x, y),
             xytext=(10, 0),
             textcoords="offset points",
             fontsize=10,
-            color=line.get_color(),
+            color=ax.lines[-1].get_color(),
             ha="left",
             va="center"
         )
@@ -360,9 +366,11 @@ for idx, column in enumerate(df_cumul_selected.columns):
 ax.set_title("Rendements Cumulés des Produits", fontsize=16)
 ax.set_xlabel("Date", fontsize=12)
 ax.set_ylabel("Rendement Cumulé", fontsize=12)
+ax.legend(loc='best')
 ax.set_ylim(adjusted_min, adjusted_max)
 ax.set_xlim(df_cumul_selected.index.min(), df_cumul_selected.index.max())
 plt.xticks(rotation=45)
+
 plt.grid()
 st.pyplot(fig)
 

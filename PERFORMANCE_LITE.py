@@ -254,7 +254,7 @@ def highlight_rows(row):
 
 styled_df = selected_perf.style.apply(highlight_rows, axis=1)
 
-st.write("**TOP 5 and WORST 5 PERFORMERS ** :rocket:")
+st.write("**TOP 5 and WORST 5 PERFORMERS :** :rocket:")
 
 st.dataframe(styled_df)
 
@@ -324,6 +324,8 @@ custom_css = """
         }
     </style>
 """
+
+st.write("**PERFORMANCE OVER TIME:** :rocket:")
 
 st.markdown(custom_css + styled_table, unsafe_allow_html=True)
 #st.dataframe(df_tb_perf.style.set_properties(**{'white-space': 'nowrap'}))

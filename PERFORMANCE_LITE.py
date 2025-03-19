@@ -152,7 +152,7 @@ def PREMIUM(selected_plan, start_date, end_date, selected_bench, CHF):
 st.write("**WELCOME** :sunglasses:")
 
 menu_selection = st.selectbox(
-    "**Sélectionnez un plan :**",
+    "**Sélectionnez une page :**",
     options=['DETAILS_VIEW', 'DOWNLOAD'],
     index=0
 )

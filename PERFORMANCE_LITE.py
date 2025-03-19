@@ -148,6 +148,8 @@ def PREMIUM(selected_plan, start_date, end_date, selected_bench, CHF):
     return df_cumul_grille, df_gain_loss
 
 
+st.write("**WELCOME** :sunglasses:")
+
 st.write("**Sélectionnez une plage de dates :**")
 date_range_option = st.selectbox(
     "Choisissez la plage de dates",
@@ -251,6 +253,8 @@ def highlight_rows(row):
     return [f'background-color: transparent; color: {color}'] * len(row)
 
 styled_df = selected_perf.style.apply(highlight_rows, axis=1)
+
+st.write("**TOP 5 and WORST 5 PERFORMERS ** :rocket:")
 
 st.dataframe(styled_df)
 

@@ -466,7 +466,8 @@ if menu_selection == 'DOWNLOAD' :
             file_name="data_premium.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
-         if selected_plan == 'ESSENTIAL':
+      
+     if selected_plan == 'ESSENTIAL':
         end_date = df_essential_back.index.max()
         date_map = {
             'Inception': df_essential_back.index.min(),

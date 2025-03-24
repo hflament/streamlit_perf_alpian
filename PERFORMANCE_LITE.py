@@ -108,7 +108,7 @@ df_PW.index = pd.to_datetime(df_PW.index)
 df_PW = df_PW + 1
 df_PW = df_PW.pct_change().fillna(0)
 
-df = pd.read_sql("SELECT * FROM Daily_Return_Premium", conn).set_index('date')
+df = pd.read_sql("SELECT * FROM Daily_Return_only_Premium", conn).set_index('date')
 list_premium = ['CAUTIOUS_PREMIUM', 'MODERATE_PREMIUM', 'BALANCED_PREMIUM', 'AGGRESSIVE_PREMIUM', 'VERY_AGGRESSIVE_PREMIUM']
 list_premium_Essential = ['CAUTIOUS_PREMIUM', 'MODERATE_PREMIUM', 'BALANCED_PREMIUM', 'AGGRESSIVE_PREMIUM', 'VERY_AGGRESSIVE_PREMIUM', 'ESSENTIAL']
 df = df.rename({'1.0' : 'CAUTIOUS_PREMIUM', '2.0':'MODERATE_PREMIUM', '3.0':'BALANCED_PREMIUM', '4.0':'AGGRESSIVE_PREMIUM', '5.0':'VERY_AGGRESSIVE_PREMIUM'}, axis= 1).drop(columns=['0.0'])

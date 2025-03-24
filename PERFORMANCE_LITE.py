@@ -438,7 +438,7 @@ if menu_selection == 'DOWNLOAD' :
         st.dataframe(styled_df)
 
         st.write("**CUMULATIVE PERF :**")
-        df_performances = pd.read_sql('SELECT date, ALPDISCOMP1, ALPDISCOMP2, ALPDISCOMP3, ALPDISCOMP4, ALPDISCOMP5 FROM cumul_performances_premium', conn)
+        df_performances = pd.read_sql('SELECT date, ALPDISCOMP1, ALPDISCOMP2, ALPDISCOMP3, ALPDISCOMP4, ALPDISCOMP5 FROM cumul_performances_only_premium', conn)
         df_performances.columns = ['date', 'CAUTIOUS_PREMIUM', 'MODERATE_PREMIUM','BALANCED_PREMIUM', 'AGGRESSIVE_PREMIUM', 'VERY_AGGRESSIVE_PREMIUM']
         st.dataframe(df_performances.set_index('date'))
 

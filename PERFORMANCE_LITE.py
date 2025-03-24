@@ -4,24 +4,26 @@ import numpy as np
 import pandas as pd
 import requests
 from datetime import timedelta
+import io
 import os
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 
-GITHUB_URL = "https://raw.githubusercontent.com/hflament/streamlit_perf_alpian/main/IMM.db"
-LOCAL_DB_PATH = "IMM.db"
+# GITHUB_URL = "https://raw.githubusercontent.com/hflament/streamlit_perf_alpian/main/IMM.db"
+# LOCAL_DB_PATH = "IMM.db"
+#
+# # Check if IMM.db already exists locally
+# if not os.path.exists(LOCAL_DB_PATH):
+#     try:
+#         st.info("Downloading database file from GitHub...")
+#         response = requests.get(GITHUB_URL)
+#         with open(LOCAL_DB_PATH, 'wb') as f:
+#             f.write(response.content)
+#         #st.success("Database downloaded successfully!")
+#     except Exception as e:
+#         st.error(f"Failed to download database: {e}")
 
-# Check if IMM.db already exists locally
-if not os.path.exists(LOCAL_DB_PATH):
-    try:
-        st.info("Downloading database file from GitHub...")
-        response = requests.get(GITHUB_URL)
-        with open(LOCAL_DB_PATH, 'wb') as f:
-            f.write(response.content)
-        #st.success("Database downloaded successfully!")
-    except Exception as e:
-        st.error(f"Failed to download database: {e}")
-
+LOCAL_DB_PATH = "/Users/hflament/Library/CloudStorage/OneDrive-SharedLibraries-AlpianSA/Investments - General/IMM.db"
 # Connect to SQLite database
 try:
     conn = sqlite3.connect(LOCAL_DB_PATH, check_same_thread=False)
@@ -30,6 +32,47 @@ try:
 except Exception as e:
     st.error(f"Error connecting to database: {e}")
 
+def get_closest_date(df, target_date):
+    return df.index[df.index <= target_date].max()
+def get_return(df, period_dates):
+    if isinstance(period_dates, tuple):
+        start_date, end_year_date = period_dates
+        closest_start = get_closest_date(df, start_date)
+        closest_end = get_closest_date(df, end_year_date)
+    else:
+        closest_start = get_closest_date(df, period_dates)
+        closest_end = end_date
+    if pd.notna(closest_start) and pd.notna(closest_end):
+        return df.loc[closest_end] / df.loc[closest_start] - 1
+    return np.nan
+
+def highlight_rows(row):
+    color = 'limegreen' if row.name < 5 else 'salmon'
+    return [f'background-color: transparent; color: {color}'] * len(row)
+
+#TOP 5 and Worst 5
+df_instru_disc = pd.read_sql('SELECT * FROM PRICE_DISC_ACTIVE', conn).set_index('DATE')
+df_instru_disc.index = pd.to_datetime(df_instru_disc.index)
+max_year = df_instru_disc.index.max().year
+
+df_instru_disc = df_instru_disc.loc[pd.Timestamp(f"{max_year}-01-01"):].pct_change(fill_method=None).fillna(0)
+df_instru_disc = df_instru_disc.loc[:, (df_instru_disc != 0).any(axis=0)]
+df_disc_cumul = (df_instru_disc + 1).cumprod()
+
+final_perf = df_disc_cumul.iloc[-1]
+top_5 = final_perf.nlargest(5)
+bottom_5 = final_perf.nsmallest(5)
+selected_perf = pd.concat([top_5, bottom_5]).sort_values(ascending=False).reset_index()
+selected_perf.columns = ['immId', 'Performance_YTD']
+
+df_info_instru = pd.read_sql('SELECT * FROM INFO_DISC_INSTRU', conn)
+selected_perf['immId'] = selected_perf['immId'].astype(str)
+df_info_instru['immId'] = df_info_instru['immId'].astype(str)
+selected_perf = selected_perf.merge(df_info_instru, on = 'immId', how = 'left')[['name', 'isin', 'Performance_YTD']]
+selected_perf['Performance_YTD'] = (selected_perf['Performance_YTD']-1)*100
+selected_perf['Performance_YTD'] = selected_perf['Performance_YTD'].apply(lambda x: f"{x:.3f} %")
+
+styled_df = selected_perf.style.apply(highlight_rows, axis=1)
 
 #Essential all
 df_grille_essential = pd.read_sql("SELECT * FROM performance_essential",conn).set_index('date')
@@ -236,32 +279,6 @@ if menu_selection == 'DETAILS_VIEW' :
     df_cumul_selected, df_gain_loss = PREMIUM(selected_plan, start_date, end_date, bench, str(CHF))
 
     #TOP 5 and BOTTOM 5 instrument discretionnary perf YTD
-    df_instru_disc = pd.read_sql('SELECT * FROM PRICE_DISC_ACTIVE', conn).set_index('DATE')
-    df_instru_disc.index = pd.to_datetime(df_instru_disc.index)
-    max_year = df_instru_disc.index.max().year
-
-    df_instru_disc = df_instru_disc.loc[pd.Timestamp(f"{max_year}-01-01"):].pct_change(fill_method=None).fillna(0)
-    df_instru_disc = df_instru_disc.loc[:, (df_instru_disc != 0).any(axis=0)]
-    df_disc_cumul = (df_instru_disc + 1).cumprod()
-
-    final_perf = df_disc_cumul.iloc[-1]
-    top_3 = final_perf.nlargest(5)
-    bottom_3 = final_perf.nsmallest(5)
-    selected_perf = pd.concat([top_3, bottom_3]).sort_values(ascending=False).reset_index()
-    selected_perf.columns = ['immId', 'Performance_YTD']
-
-    df_info_instru = pd.read_sql('SELECT * FROM INFO_DISC_INSTRU', conn)
-    selected_perf['immId'] = selected_perf['immId'].astype(str)
-    df_info_instru['immId'] = df_info_instru['immId'].astype(str)
-    selected_perf = selected_perf.merge(df_info_instru, on = 'immId', how = 'left')[['name', 'isin', 'Performance_YTD']]
-    selected_perf['Performance_YTD'] = (selected_perf['Performance_YTD']-1)*100
-    selected_perf['Performance_YTD'] = selected_perf['Performance_YTD'].apply(lambda x: f"{x:.3f} %")
-
-    def highlight_rows(row):
-        color = 'limegreen' if row.name < 5 else 'salmon'
-        return [f'background-color: transparent; color: {color}'] * len(row)
-
-    styled_df = selected_perf.style.apply(highlight_rows, axis=1)
 
     st.write("**TOP 5 and WORST 5 PERFORMERS :** :rocket:")
 
@@ -279,9 +296,6 @@ if menu_selection == 'DETAILS_VIEW' :
     df_perf_selected = merge_all[all_selected]
     end_date = merge_all.index.max()
 
-    def get_closest_date(df, target_date):
-        return df.index[df.index <= target_date].max()
-
     date_map = {
         'Inception': merge_all.index.min(),
         '2023': (merge_all.index.min(), pd.Timestamp("2023-12-31")) if end_date.year >= 2023 else None,
@@ -298,46 +312,32 @@ if menu_selection == 'DETAILS_VIEW' :
 
     df_tb_perf = pd.DataFrame(index=df_perf_selected.columns, columns=perf_period, data=np.nan)
 
-
-    def get_return(df, period_dates):
-        if isinstance(period_dates, tuple):
-            start_date, end_year_date = period_dates
-            closest_start = get_closest_date(df, start_date)
-            closest_end = get_closest_date(df, end_year_date)
-        else:
-            closest_start = get_closest_date(df, period_dates)
-            closest_end = end_date
-        if pd.notna(closest_start) and pd.notna(closest_end):
-            return df.loc[closest_end] / df.loc[closest_start] - 1
-        return np.nan
-
-
     for period, period_dates in date_map.items():
         df_tb_perf[period] = get_return(df_cumul_perf, period_dates)
 
     df_tb_perf = df_tb_perf * 100
     df_tb_perf = df_tb_perf.applymap(lambda x: f"{x:.3f} %")
 
-    styled_table = df_tb_perf.to_html()
-    custom_css = """
-        <style>
-            table {
-                width: 100%;
-                border-collapse: collapse;
-            }
-            th, td {
-                padding: 8px 12px;
-                text-align: center;
-                white-space: nowrap; /* Prevents line breaks */
-                font-size: 16px;
-            }
-        </style>
-    """
+    # styled_table = df_tb_perf.to_html()
+    # custom_css = """
+    #     <style>
+    #         table {
+    #             width: 100%;
+    #             border-collapse: collapse;
+    #         }
+    #         th, td {
+    #             padding: 8px 12px;
+    #             text-align: center;
+    #             white-space: nowrap; /* Prevents line breaks */
+    #             font-size: 16px;
+    #         }
+    #     </style>
+    # """
+    #
+    # st.write("**PERFORMANCE OVER TIME:** :chart_with_upwards_trend:")
 
-    st.write("**PERFORMANCE OVER TIME:** :chart_with_upwards_trend:")
-
-    st.markdown(custom_css + styled_table, unsafe_allow_html=True)
-    #st.dataframe(df_tb_perf.style.set_properties(**{'white-space': 'nowrap'}))
+    #st.markdown(custom_css + styled_table, unsafe_allow_html=True)
+    st.dataframe(df_tb_perf.style.set_properties(**{'white-space': 'nowrap'}))
 
     df_cumul_selected.index = pd.to_datetime(df_cumul_selected.index)
     min_value = df_cumul_selected.min().min()
@@ -403,5 +403,60 @@ if menu_selection == 'DETAILS_VIEW' :
         st.pyplot(fig)
 
 if menu_selection == 'DOWNLOAD' :
-    st.write("DOWNLOAD")
 
+    selected_plan = st.selectbox(
+        "**Sélectionnez un plan :**",
+        options=['PREMIUM', 'ESSENTIAL'],
+        index=0)
+
+    if selected_plan == 'PREMIUM':
+        end_date = df.index.max()
+        date_map = {
+            'Inception': df.index.min(),
+            '2023': (df.index.min(), pd.Timestamp("2023-12-31")) if end_date.year >= 2023 else None,
+            '2024': (pd.Timestamp("2024-01-01"), pd.Timestamp("2024-12-31")) if end_date.year >= 2024 else None,
+            'YTD': pd.Timestamp(f"{end_date.year}-01-01"),
+            '6m': end_date - timedelta(days=6 * 30),
+            '3m': end_date - timedelta(days=3 * 30),
+            '1m': end_date - timedelta(days=30)
+        }
+        date_map = {k: v for k, v in date_map.items() if v is not None}
+        df = df.merge(df_PW, right_index = True, left_index = True, how='left')
+        df_cumul_perf = (1 + df).cumprod().fillna(method='ffill')
+
+        df_tb_perf_pm = pd.DataFrame(index=['CAUTIOUS_PREMIUM', 'PW_low_bench','MODERATE_PREMIUM','PW_mod_bench','BALANCED_PREMIUM','PW_bal_bench','AGGRESSIVE_PREMIUM','PW_dyn_bench','VERY_AGGRESSIVE_PREMIUM', 'PW_very_dyn_bench'], columns=['Inception', '2023', '2024', 'YTD', '6m', '3m', '1m'], data=np.nan)
+
+        for period, period_dates in date_map.items():
+            df_tb_perf_pm[period] = get_return(df_cumul_perf, period_dates)
+
+        df_tb_perf_pm = df_tb_perf_pm * 100
+        df_tb_perf_pm = df_tb_perf_pm.applymap(lambda x: f"{x:.3f} %")
+        st.write("**COMPOSITE PERF:**")
+        st.dataframe(df_tb_perf_pm.style.set_properties(**{'white-space': 'nowrap'}))
+
+        st.write("**TOP 5 & WORST 5 PERFORMERS :**")
+        st.dataframe(styled_df)
+
+        st.write("**CUMULATIVE PERF :**")
+        df_performances = pd.read_sql('SELECT date, ALPDISCOMP1, ALPDISCOMP2, ALPDISCOMP3, ALPDISCOMP4, ALPDISCOMP5 FROM cumul_performances_premium', conn)
+        df_performances.columns = ['date', 'CAUTIOUS_PREMIUM', 'MODERATE_PREMIUM','BALANCED_PREMIUM', 'AGGRESSIVE_PREMIUM', 'VERY_AGGRESSIVE_PREMIUM']
+        st.dataframe(df_performances.set_index('date'))
+
+
+        def to_excel(df_1, df_2, df_3):
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df_1.to_excel(writer, index=False, sheet_name='Composite')
+                df_2.to_excel(writer, index=False, sheet_name='Top & Worst')
+                df_3.to_excel(writer, index=False, sheet_name='Cumulative')
+            processed_data = output.getvalue()
+            return processed_data
+
+        excel_data = to_excel(df_tb_perf_pm,styled_df, df_performances )
+
+        st.download_button(
+            label="Download Excel File",
+            data=excel_data,
+            file_name="data_premium.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )

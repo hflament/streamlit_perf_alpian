@@ -442,21 +442,27 @@ if menu_selection == 'DOWNLOAD' :
         df_performances.columns = ['date', 'CAUTIOUS_PREMIUM', 'MODERATE_PREMIUM','BALANCED_PREMIUM', 'AGGRESSIVE_PREMIUM', 'VERY_AGGRESSIVE_PREMIUM']
         st.dataframe(df_performances.set_index('date'))
 
+        st.write("**LEVEL 2 Weights :**")
+        df_level_2 = pd.read_sql('SELECT * FROM Level_2_premium', conn).set_index('uid')
+        df_level_2.columns = ['CAUTIOUS_PREMIUM', 'MODERATE_PREMIUM', 'BALANCED_PREMIUM', 'AGGRESSIVE_PREMIUM', 'VERY_AGGRESSIVE_PREMIUM']
+        df_level_2 = df_level_2 * 100
+        df_level_2 = df_level_2.applymap(lambda x: f"{x:.3f} %")
+        st.dataframe(df_level_2)
 
-        def to_excel(df_1, df_2, df_3):
+        def to_excel(df_1, df_2, df_3, df_4):
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
                 df_1.to_excel(writer, index=False, sheet_name='Composite')
-                df_2.to_excel(writer, index=False, sheet_name='Top & Worst')
+                df_2.to_excel(writer, index=False, sheet_name='Top_&_Worst')
                 df_3.to_excel(writer, index=False, sheet_name='Cumulative')
+                df_4.to_excel(writer, index=False, sheet_name='Level_2')
             processed_data = output.getvalue()
             return processed_data
 
-        excel_data = to_excel(df_tb_perf_pm,styled_df, df_performances )
-
+        excel_data = to_excel(df_tb_perf_pm,styled_df, df_performances,df_level_2 )
         st.download_button(
-            label="Download PREMIUM DATA",
+            label="Download Excel File",
             data=excel_data,
             file_name="data_premium.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+            )

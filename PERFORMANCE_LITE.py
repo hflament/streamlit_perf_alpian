@@ -455,7 +455,7 @@ if menu_selection == 'DOWNLOAD' :
         excel_data = to_excel(df_tb_perf_pm,styled_df, df_performances )
 
         st.download_button(
-            label="Download Excel File",
+            label="Download PREMIUM DATA",
             data=excel_data,
             file_name="data_premium.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

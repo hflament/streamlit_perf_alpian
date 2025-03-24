@@ -466,3 +466,59 @@ if menu_selection == 'DOWNLOAD' :
             file_name="data_premium.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
+         if selected_plan == 'ESSENTIAL':
+        end_date = df_essential_back.index.max()
+        date_map = {
+            'Inception': df_essential_back.index.min(),
+            '2023': (df_essential_back.index.min(), pd.Timestamp("2023-12-31")) if end_date.year >= 2023 else None,
+            '2024': (pd.Timestamp("2024-01-01"), pd.Timestamp("2024-12-31")) if end_date.year >= 2024 else None,
+            'YTD': pd.Timestamp(f"{end_date.year}-01-01"),
+            '6m': end_date - timedelta(days=6 * 30),
+            '3m': end_date - timedelta(days=3 * 30),
+            '1m': end_date - timedelta(days=30)
+        }
+        date_map = {k: v for k, v in date_map.items() if v is not None}
+        df = df.merge(df_PW, right_index=True, left_index=True, how='left')
+        df_cumul_perf = (1 + df_essential_back).cumprod().fillna(method='ffill')
+
+        df_tb_perf_pm = pd.DataFrame(
+            index=df_essential_back.columns, columns=['Inception', '2023', '2024', 'YTD', '6m', '3m', '1m'], data=np.nan)
+
+        for period, period_dates in date_map.items():
+            df_tb_perf_pm[period] = get_return(df_cumul_perf, period_dates)
+
+        df_tb_perf_pm = df_tb_perf_pm * 100
+        df_tb_perf_pm = df_tb_perf_pm.applymap(lambda x: f"{x:.3f} %")
+        st.write("**COMPOSITE PERF:**")
+        st.dataframe(df_tb_perf_pm.style.set_properties(**{'white-space': 'nowrap'}))
+
+        st.write("**TOP 5 & WORST 5 PERFORMERS :**")
+        st.dataframe(styled_df)
+
+        st.write("**CUMULATIVE PERF :**")
+        df_performances = df_cumul_perf
+        st.dataframe(df_performances)
+
+        st.write("**LEVEL 2 Weights :**")
+        df_level_2 = pd.read_sql('SELECT * FROM Level_2_essential', conn).set_index('uid')
+        df_level_2 = df_level_2 * 100
+        df_level_2 = df_level_2.applymap(lambda x: f"{x:.3f} %")
+        st.dataframe(df_level_2)
+
+        def to_excel(df_1, df_2, df_3, df_4):
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df_1.to_excel(writer, index=False, sheet_name='Composite')
+                df_2.to_excel(writer, index=False, sheet_name='Top_&_Worst')
+                df_3.to_excel(writer, index=False, sheet_name='Cumulative')
+                df_4.to_excel(writer, index=False, sheet_name='Level_2')
+            processed_data = output.getvalue()
+            return processed_data
+
+        excel_data = to_excel(df_tb_perf_pm,styled_df, df_performances,df_level_2 )
+        st.download_button(
+            label="Download Excel File",
+            data=excel_data,
+            file_name="data_essential.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )

@@ -9,21 +9,21 @@ import os
 import matplotlib.pyplot as plt
 pd.set_option('display.max_columns', None)
 
-# GITHUB_URL = "https://raw.githubusercontent.com/hflament/streamlit_perf_alpian/main/IMM.db"
-# LOCAL_DB_PATH = "IMM.db"
+GITHUB_URL = "https://raw.githubusercontent.com/hflament/streamlit_perf_alpian/main/IMM.db"
+LOCAL_DB_PATH = "IMM.db"
 #
-# # Check if IMM.db already exists locally
-# if not os.path.exists(LOCAL_DB_PATH):
-#     try:
-#         st.info("Downloading database file from GitHub...")
-#         response = requests.get(GITHUB_URL)
-#         with open(LOCAL_DB_PATH, 'wb') as f:
-#             f.write(response.content)
-#         #st.success("Database downloaded successfully!")
-#     except Exception as e:
-#         st.error(f"Failed to download database: {e}")
+# Check if IMM.db already exists locally
+if not os.path.exists(LOCAL_DB_PATH):
+     try:
+         st.info("Downloading database file from GitHub...")
+         response = requests.get(GITHUB_URL)
+         with open(LOCAL_DB_PATH, 'wb') as f:
+             f.write(response.content)
+         #st.success("Database downloaded successfully!")
+     except Exception as e:
+         st.error(f"Failed to download database: {e}")
 
-LOCAL_DB_PATH = "/Users/hflament/Library/CloudStorage/OneDrive-SharedLibraries-AlpianSA/Investments - General/IMM.db"
+#LOCAL_DB_PATH = "/Users/hflament/Library/CloudStorage/OneDrive-SharedLibraries-AlpianSA/Investments - General/IMM.db"
 # Connect to SQLite database
 try:
     conn = sqlite3.connect(LOCAL_DB_PATH, check_same_thread=False)

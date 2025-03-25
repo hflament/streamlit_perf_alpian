@@ -452,10 +452,10 @@ if menu_selection == 'DOWNLOAD' :
         def to_excel(df_1, df_2, df_3, df_4):
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df_1.to_excel(writer, index=False, sheet_name='Composite')
-                df_2.to_excel(writer, index=False, sheet_name='Top_&_Worst')
-                df_3.to_excel(writer, index=False, sheet_name='Cumulative')
-                df_4.to_excel(writer, index=False, sheet_name='Level_2')
+                df_1.to_excel(writer, index=True, sheet_name='Composite')
+                df_2.to_excel(writer, index=True, sheet_name='Top_&_Worst')
+                df_3.to_excel(writer, index=True, sheet_name='Cumulative')
+                df_4.to_excel(writer, index=True, sheet_name='Level_2')
             processed_data = output.getvalue()
             return processed_data
 
@@ -509,10 +509,10 @@ if menu_selection == 'DOWNLOAD' :
         def to_excel(df_1, df_2, df_3, df_4):
             output = io.BytesIO()
             with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df_1.to_excel(writer, index=False, sheet_name='Composite')
-                df_2.to_excel(writer, index=False, sheet_name='Top_&_Worst')
-                df_3.to_excel(writer, index=False, sheet_name='Cumulative')
-                df_4.to_excel(writer, index=False, sheet_name='Level_2')
+                df_1.to_excel(writer, index=True, sheet_name='Composite')
+                df_2.to_excel(writer, index=True, sheet_name='Top_&_Worst')
+                df_3.to_excel(writer, index=True, sheet_name='Cumulative')
+                df_4.to_excel(writer, index=True, sheet_name='Level_2')
             processed_data = output.getvalue()
             return processed_data
 

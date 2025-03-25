@@ -440,7 +440,13 @@ if menu_selection == 'DOWNLOAD' :
         st.write("**CUMULATIVE PERF :**")
         df_performances = pd.read_sql('SELECT date, ALPDISCOMP1, ALPDISCOMP2, ALPDISCOMP3, ALPDISCOMP4, ALPDISCOMP5 FROM cumul_performances_only_premium', conn)
         df_performances.columns = ['date', 'CAUTIOUS_PREMIUM', 'MODERATE_PREMIUM','BALANCED_PREMIUM', 'AGGRESSIVE_PREMIUM', 'VERY_AGGRESSIVE_PREMIUM']
-        st.dataframe(df_performances.set_index('date'))
+        df_PW = pd.read_sql("SELECT * FROM PW_BENCH", conn).set_index('date')
+        df_PW.index = pd.to_datetime(df_PW.index)
+        df_PW = (df_PW + 1) * 100
+        df_performances = df_performances.set_index('date')
+        df_performances.index = pd.to_datetime(df_performances.index)
+        df_performances = df_performances.merge(df_PW, right_index=True, left_index=True, how = 'left')
+        st.dataframe(df_performances)
 
         st.write("**LEVEL 2 Weights :**")
         df_level_2 = pd.read_sql('SELECT * FROM Level_2_premium', conn).set_index('uid')
